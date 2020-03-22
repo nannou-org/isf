@@ -1,0 +1,8 @@
+language: rust
+rust:
+    - nightly
+    - stable
+script:
+    - cargo check --verbose
+    - cargo test --verbose
+    - cargo doc --verbose

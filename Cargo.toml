@@ -1,0 +1,16 @@
+[package]
+name = "isf"
+version = "0.1.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+description = "Parsing, Deserialization and Serialization of the Interactive Shader Format."
+readme = "README.md"
+keywords = ["interactive", "shader", "format", "isf", "glsl"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/nannou-org/isf.git"
+homepage = "https://github.com/nannou-org/isf"
+edition = "2018"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"

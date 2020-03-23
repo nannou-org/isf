@@ -40,6 +40,7 @@ pub struct Isf {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Input {
     pub name: String,
+    pub label: Option<String>,
     pub ty: InputType,
 }
 
@@ -103,6 +104,8 @@ pub struct InputAudioFft {
 struct InputDict {
     #[serde(rename = "NAME")]
     pub name: String,
+    #[serde(rename = "LABEL")]
+    pub label: Option<String>,
     #[serde(rename = "TYPE")]
     pub ty: String,
     #[serde(default, rename = "DEFAULT")]
@@ -210,10 +213,11 @@ impl Serialize for Input {
     where
         S: Serializer,
     {
-        let Input { ref name, ref ty } = self;
+        let Input { ref name, ref label, ref ty } = self;
 
         let mut dict = InputDict {
             name: name.clone(),
+            label: label.clone(),
             ty: String::new(),
             default: None,
             min: None,
@@ -288,6 +292,7 @@ impl<'de> Deserialize<'de> for Input {
     {
         let InputDict {
             name,
+            label,
             ty,
             default,
             min,
@@ -361,7 +366,7 @@ impl<'de> Deserialize<'de> for Input {
             _ => unimplemented!(), // TODO: Return serde err "unknown type".
         };
 
-        Ok(Input { name, ty })
+        Ok(Input { name, label, ty })
     }
 }
 

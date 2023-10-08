@@ -20,18 +20,25 @@ use thiserror::Error;
 /// This is referred to as the "top-level dict" in the spec.
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct Isf {
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default, rename = "ISFVSN")]
     pub isfvsn: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default, rename = "VSN")]
     pub vsn: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default, rename = "DESCRIPTION")]
     pub description: Option<String>,
     #[serde(default, rename = "CATEGORIES")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub categories: Vec<String>,
     #[serde(default, rename = "INPUTS")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub inputs: Vec<Input>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default, rename = "PASSES")]
     pub passes: Vec<Pass>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     #[serde(default, rename = "IMPORTED")]
     pub imported: BTreeMap<String, ImageImport>,
 }
@@ -61,12 +68,16 @@ pub enum InputType {
 /// Possible values stored for the type.
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct InputValues<T> {
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "DEFAULT")]
     pub default: Option<T>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "MIN")]
     pub min: Option<T>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "MAX")]
     pub max: Option<T>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "IDENTITY")]
     pub identity: Option<T>,
 }
@@ -105,19 +116,26 @@ struct InputDict {
     #[serde(rename = "NAME")]
     pub name: String,
     #[serde(rename = "LABEL")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
     #[serde(rename = "TYPE")]
     pub ty: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default, rename = "DEFAULT")]
     pub default: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default, rename = "MIN")]
     pub min: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default, rename = "MAX")]
     pub max: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default, rename = "IDENTITY")]
     pub identity: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default, rename = "VALUES")]
     pub values: Vec<i32>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default, rename = "LABELS")]
     pub labels: Vec<String>,
 }
@@ -133,7 +151,11 @@ pub struct Pass {
     pub float: bool,
     #[serde(default, deserialize_with = "deserialize_opt_string", rename = "WIDTH")]
     pub width: Option<String>,
-    #[serde(default, deserialize_with = "deserialize_opt_string", rename = "HEIGHT")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_opt_string",
+        rename = "HEIGHT"
+    )]
     pub height: Option<String>,
 }
 
@@ -213,7 +235,11 @@ impl Serialize for Input {
     where
         S: Serializer,
     {
-        let Input { ref name, ref label, ref ty } = self;
+        let Input {
+            ref name,
+            ref label,
+            ref ty,
+        } = self;
 
         let mut dict = InputDict {
             name: name.clone(),
@@ -234,24 +260,24 @@ impl Serialize for Input {
         match ty {
             InputType::Event => {
                 dict.ty = "event".to_string();
-            },
+            }
 
             InputType::Bool(ref t) => {
                 dict.ty = "bool".to_string();
                 dict.default = t.default.map(Into::into);
-            },
+            }
 
             InputType::Long(ref t) => {
                 dict.ty = "long".to_string();
                 t.write_to_dict(&mut dict);
                 dict.values = t.values.clone();
                 dict.labels = t.labels.clone();
-            },
+            }
 
             InputType::Float(ref t) => {
                 dict.ty = "float".to_string();
                 t.write_to_dict(&mut dict);
-            },
+            }
 
             InputType::Point2d(ref t) => {
                 dict.ty = "point2D".to_string();
@@ -259,26 +285,26 @@ impl Serialize for Input {
                 dict.min = t.min.map(pt2_to_json_value);
                 dict.max = t.max.map(pt2_to_json_value);
                 dict.identity = t.identity.map(pt2_to_json_value);
-            },
+            }
 
             InputType::Color(ref t) => {
                 dict.ty = "color".to_string();
                 t.write_to_dict(&mut dict);
-            },
+            }
 
             InputType::Image => {
                 dict.ty = "image".to_string();
-            },
+            }
 
             InputType::Audio(ref t) => {
                 dict.ty = "audio".to_string();
                 dict.max = t.num_samples.map(Into::into);
-            },
+            }
 
             InputType::AudioFft(ref t) => {
                 dict.ty = "audioFFT".to_string();
                 dict.max = t.num_columns.map(Into::into);
-            },
+            }
         };
 
         dict.serialize(s)
@@ -362,8 +388,7 @@ impl<'de> Deserialize<'de> for Input {
                     None => None,
                 },
             }),
-
-            _ => unimplemented!(), // TODO: Return serde err "unknown type".
+            _ => return Err(serde::de::Error::custom("unknown type")), // Return serde error for "unknown type".
         };
 
         Ok(Input { name, label, ty })
@@ -394,12 +419,8 @@ where
 {
     let b = match serde_json::Value::deserialize(d)? {
         serde_json::Value::Bool(b) => b,
-        serde_json::Value::Number(n) if n.is_u64() => {
-            n.as_u64().unwrap() != 0
-        }
-        serde_json::Value::Number(n) if n.is_f64() => {
-            n.as_f64().unwrap() as u64 != 0
-        }
+        serde_json::Value::Number(n) if n.is_u64() => n.as_u64().unwrap() != 0,
+        serde_json::Value::Number(n) if n.is_f64() => n.as_f64().unwrap() as u64 != 0,
         value => serde_json::from_value(value).map_err(serde::de::Error::custom)?,
     };
     Ok(b)
